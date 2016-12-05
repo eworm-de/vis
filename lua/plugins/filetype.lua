@@ -554,21 +554,20 @@ vis.events.subscribe(vis.events.WIN_OPEN, function(win)
 			end
 		end
 
-		-- run file(1) to determine mime type
-		local file = io.popen(string.format("file -bL --mime-type -- '%s'", path:gsub("'", "'\\''")))
-		if file then
-			mime = file:read('*all')
-			file:close()
-			if mime then
-				mime = mime:gsub('%s*$', '')
-			end
-			if mime and #mime > 0 then
-				for lang, ft in pairs(vis.ftdetect.filetypes) do
-					for _, ft_mime in pairs(ft.mime or {}) do
-						if mime == ft_mime then
-							set_filetype(lang, ft)
-							return
-						end
+		-- use lua-magic to determine mime type
+		local magic = require('magic')
+		local mgc = magic.open(magic.MIME_TYPE, magic.NO_CHECK_COMPRESS)
+		mgc:load()
+		local mime = mgc:file(name:gsub("'", "'\\''"))
+		if mime then
+			mime = mime:gsub('%s*$', '')
+		end
+		if mime and #mime > 0 then
+			for lang, ft in pairs(vis.ftdetect.filetypes) do
+				for _, ft_mime in pairs(ft.mime or {}) do
+					if mime == ft_mime then
+						win.syntax = lang
+						return
 					end
 				end
 			end
